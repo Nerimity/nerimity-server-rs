@@ -1,0 +1,29 @@
+[package]
+name = "nerimity-server-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.9"
+base64 = "0.23.1"
+dotenvy = "0.15.7"
+jsonwebtoken = {version = "12.0.0",  features = ["aws_lc_rs"] }
+prost = "0.14.6"
+serde = "1.0.229"
+serde_json = "1.0.154"
+sqlx = {version = "0.9.1", features= [
+   "runtime-tokio",
+    "tls-rustls",
+    "postgres",
+    "macros",
+    "migrate",
+    "uuid",
+    "chrono",
+]}
+tokio = { version = "1.54.1", features = ["full"] }
+tonic = "0.14.9"
+tonic-prost = "0.14.9"
+
+[build-dependencies]
+tonic-prost-build = "0.14.9"
+
