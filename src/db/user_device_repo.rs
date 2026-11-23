@@ -13,10 +13,11 @@ pub async fn find_by_session_id(
     pool: &PgPool,
     id: String,
 ) -> Result<Option<UserDevice>, sqlx::Error> {
-    sqlx::query_as::<_, UserDevice>(
-        r#"SELECT id, "userId", "sessionId" FROM user_devices WHERE "sessionId" = $1"#,
+    sqlx::query_as!(
+        UserDevice,
+        r#"SELECT id, "userId" AS user_id, "sessionId" AS session_id FROM user_devices WHERE "sessionId" = $1"#,
+        id
     )
-    .bind(id)
     .fetch_optional(pool)
     .await
 }
