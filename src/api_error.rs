@@ -34,7 +34,7 @@ impl ApiError {
             message: message.to_string(),
         }
     }
-    fn internal_server_error(message: &str) -> Self {
+    pub fn internal_server_error(message: &str) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             message: message.to_string(),
@@ -43,7 +43,8 @@ impl ApiError {
 }
 
 impl From<sqlx::Error> for ApiError {
-    fn from(_: sqlx::Error) -> Self {
+    fn from(err: sqlx::Error) -> Self {
+        eprintln!("{}", err);
         Self::internal_server_error("Database error")
     }
 }
