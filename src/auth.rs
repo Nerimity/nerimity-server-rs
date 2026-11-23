@@ -2,9 +2,9 @@ use axum::http::HeaderMap;
 
 use crate::{
     AppState,
+    api_error::ApiError,
     cache::user_cache_repo::{UserCache, get_user_cache_by_session_id},
     jwt::decode_string_jwt,
-    routes::message_routes::ApiError,
 };
 
 pub async fn auth(token: &str, state: &AppState) -> Result<UserCache, ApiError> {

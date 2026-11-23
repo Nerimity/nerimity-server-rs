@@ -1,3 +1,4 @@
+mod api_error;
 mod auth;
 mod cache;
 mod db;

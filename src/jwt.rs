@@ -1,7 +1,7 @@
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use jsonwebtoken::{Algorithm, DecodingKey, crypto};
 
-use crate::routes::message_routes::ApiError;
+use crate::api_error::ApiError;
 
 const TOKEN_PREFIX: &str = "eyJhbGciOiJIUzI1NiJ9.";
 
