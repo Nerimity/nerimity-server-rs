@@ -86,7 +86,9 @@ async fn create_message(
 ) -> Result<String, ApiError> {
     body.validate()?;
 
-    auth_from_headers(&headers, &state).await?;
+    let res = auth_from_headers(&headers, &state).await?;
+
+    println!("cache: {:?}", res);
 
     message_service::create_message(&state, channel_id.clone()).await?;
     Ok(channel_id)

@@ -1,4 +1,5 @@
 mod auth;
+mod cache;
 mod db;
 mod jwt;
 mod proto;
@@ -13,6 +14,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use jsonwebtoken::DecodingKey;
+use redis::aio::ConnectionManager;
 use serde_json::json;
 use tonic::transport::Channel;
 
@@ -23,6 +25,7 @@ struct AppState {
     socket: SocketClient<Channel>,
     db: sqlx::PgPool,
     jwt_decode_key: DecodingKey,
+    redis: ConnectionManager,
 }
 
 async fn json_errors(res: Response) -> Response {
@@ -55,8 +58,15 @@ async fn not_found() -> impl IntoResponse {
 async fn main() {
     dotenvy::dotenv().ok();
 
+    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+
+    println!("[Redis] Connecting...");
+    let redis_client = redis::Client::open(redis_url).unwrap();
+    let redis = ConnectionManager::new(redis_client).await.unwrap();
+
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
+    println!("[DB] Connecting...");
     let db = sqlx::postgres::PgPoolOptions::new()
         .max_connections(10)
         .connect(&database_url)
@@ -67,8 +77,10 @@ async fn main() {
 
     let state = AppState {
         socket: make_socket_client(),
-        jwt_decode_key: DecodingKey::from_secret(jwt_secret.as_bytes()).unwrap(),
+        jwt_decode_key: DecodingKey::from_secret(jwt_secret.as_bytes())
+            .expect("invalid JWT secret"),
         db,
+        redis,
     };
 
     let app = Router::new()
