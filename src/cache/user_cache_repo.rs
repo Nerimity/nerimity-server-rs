@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::{error::Error, sync::LazyLock};
 
 use redis::{Script, aio::ConnectionManager};
 
@@ -79,4 +79,28 @@ pub async fn get_user_cache_by_session_id(
         Some(json) => Ok(Some(serde_json::from_str(&json)?)),
         None => Ok(None),
     }
+}
+
+const HOUR_TO_SECS: u64 = 3600;
+
+pub async fn store_user_cache(
+    redis: &ConnectionManager,
+    cache: &UserCache,
+    session_id: String,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let mut conn = redis.clone();
+
+    let json = serde_json::to_string(&cache)?;
+
+    redis::pipe()
+        .atomic()
+        .set_ex(
+            session_id_to_user_id_key(&session_id),
+            &cache.id,
+            HOUR_TO_SECS,
+        )
+        .set_ex(&cache.id, json, HOUR_TO_SECS)
+        .query_async::<()>(&mut conn)
+        .await?;
+    Ok(())
 }

@@ -3,7 +3,9 @@ use axum::http::HeaderMap;
 use crate::{
     AppState,
     api_error::ApiError,
-    cache::user_cache_repo::{UserCache, get_user_cache_by_session_id},
+    cache::user_cache_repo::{
+        AccountCache, ApplicationCache, UserCache, get_user_cache_by_session_id, store_user_cache,
+    },
     db::{
         user_device_repo::{self},
         user_repo,
@@ -38,7 +40,7 @@ pub async fn auth(token: &str, state: &AppState) -> Result<UserCache, ApiError> 
 
     // database
 
-    println!("datebase checking...");
+    println!("database checking...");
 
     let user_device = user_device_repo::find_by_session_id(&state.db, session_id.to_string())
         .await?
@@ -53,11 +55,31 @@ pub async fn auth(token: &str, state: &AppState) -> Result<UserCache, ApiError> 
         },
     )
     .await?
-    .unwrap();
+    .ok_or_else(|| invalid_token_err())?;
 
-    println!("{:?}", user);
+    let cache = UserCache {
+        username: user.username,
+        tag: user.tag,
+        avatar: user.avatar,
+        banner: user.banner,
+        badges: user.badges,
+        bot: user.bot,
+        hex_color: user.hex_color,
+        id: user.id,
+        ip: user.ip,
+        shadow_banned: user.shadow_banned,
+        application: user.application.map(|a| ApplicationCache { id: a.id }),
+        account: user.account.map(|a| AccountCache {
+            id: a.id,
+            email_confirmed: a.email_confirmed,
+        }),
+    };
 
-    return Err(invalid_token_err());
+    store_user_cache(&state.redis, &cache, session_id.to_string())
+        .await
+        .map_err(|_| invalid_token_err())?;
+
+    return Ok(cache);
 }
 pub async fn auth_from_headers(
     headers: &HeaderMap,
