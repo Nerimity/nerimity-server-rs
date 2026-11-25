@@ -99,7 +99,7 @@ pub async fn store_user_cache(
             &cache.id,
             HOUR_TO_SECS,
         )
-        .set_ex(&cache.id, json, HOUR_TO_SECS)
+        .set_ex(user_cache_key(&cache.id), json, HOUR_TO_SECS)
         .query_async::<()>(&mut conn)
         .await?;
     Ok(())

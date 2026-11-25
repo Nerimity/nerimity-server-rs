@@ -30,74 +30,45 @@ pub struct Application {
     pub id: String,
 }
 
-pub struct UserQueryOptions {
-    pub include_account: bool,
-    pub include_private: bool,
-}
-
-pub async fn get_user_with_options(
+pub async fn find_for_cache_by_id(
     pool: &PgPool,
     user_id: &str,
-    opts: UserQueryOptions,
 ) -> Result<Option<User>, sqlx::Error> {
     let row: Option<Json<User>> = sqlx::query_scalar!(
         r#"
-        SELECT jsonb_build_object(
-            'id', u.id,
-            'username', u.username,
-            'hexColor', u."hexColor",
-            'tag', u.tag,
-            'avatar', u.avatar,
-            'banner', u.banner,
-            'badges', u.badges,
-            'bot', u.bot,
-            'account', CASE
-                WHEN $2 THEN (
-                    SELECT jsonb_build_object(
-                        'id', a.id,
-                        'emailConfirmed', a."emailConfirmed"
-                    )
-                    FROM accounts a
-                    WHERE a."userId" = u.id
-                    LIMIT 1
-                )
-                ELSE NULL
-            END,
-            'application', (
+        SELECT to_jsonb(u) || jsonb_build_object(
+            'account', (
                 SELECT jsonb_build_object(
-                    'id', app.id
+                    'id', a.id,
+                    'emailConfirmed', a."emailConfirmed"
                 )
+                FROM accounts a
+                WHERE a."userId" = u.id
+                LIMIT 1
+            ),
+            'application', (
+                SELECT jsonb_build_object('id', app.id)
                 FROM applications app
                 WHERE app."botUserId" = u.id
                 LIMIT 1
             ),
-            'ip', CASE
-                WHEN $3 THEN (
-                    SELECT ud."ipAddress"
-                    FROM user_devices ud
-                    WHERE ud."userId" = u.id
-                    ORDER BY ud."lastSeenAt" DESC
-                    LIMIT 1
-                )
-                ELSE NULL
-            END,
-            'shadowBanned', CASE
-                WHEN $3 THEN (
-                    SELECT EXISTS(
-                        SELECT 1
-                        FROM shadow_bans sb
-                        WHERE sb."userId" = u.id
-                    )
-                )
-                ELSE NULL
-            END
+            'ip', (
+                SELECT ud."ipAddress"
+                FROM user_devices ud
+                WHERE ud."userId" = u.id
+                ORDER BY ud."lastSeenAt" DESC
+                LIMIT 1
+            ),
+            'shadowBanned', EXISTS(
+                SELECT 1
+                FROM shadow_bans sb
+                WHERE sb."userId" = u.id
+            )
         ) AS "user!: Json<User>"
         FROM users u
         WHERE u.id = $1
         "#,
-        user_id,
-        opts.include_account,
-        opts.include_private
+        user_id
     )
     .fetch_optional(pool)
     .await?;

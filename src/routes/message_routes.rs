@@ -1,12 +1,17 @@
+use std::net::SocketAddr;
+
 use axum::{
     Json, Router,
-    extract::{Path, State},
+    extract::{ConnectInfo, Path, State},
     http::HeaderMap,
     routing::post,
 };
 use serde::Deserialize;
 
-use crate::{AppState, api_error::ApiError, auth::auth_from_headers, services::message_service};
+use crate::{
+    AppState, api_error::ApiError, auth::auth_from_headers, cache::user_cache_repo::UserCache,
+    services::message_service,
+};
 
 #[derive(Deserialize)]
 struct CreateMessageRequest {
@@ -23,19 +28,19 @@ impl CreateMessageRequest {
 }
 
 async fn create_message(
-    Path(channel_id): Path<String>,
+    Path(_channel_id): Path<String>,
     State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     Json(body): Json<CreateMessageRequest>,
-) -> Result<String, ApiError> {
+) -> Result<Json<UserCache>, ApiError> {
     body.validate()?;
 
-    let res = auth_from_headers(&headers, &state).await?;
+    let res = auth_from_headers(&headers, &addr, &state).await?;
 
-    println!("cache: {:?}", res);
-
-    message_service::create_message(&state, channel_id.clone()).await?;
-    Ok(channel_id)
+    // message_service::create_message(&state, channel_id.clone()).await?;
+    // Ok(channel_id)
+    Ok(Json(res))
 }
 
 pub fn router() -> Router<AppState> {

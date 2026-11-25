@@ -2,13 +2,16 @@ mod api_error;
 mod auth;
 mod cache;
 mod db;
+mod http_utils;
 mod jwt;
 mod proto;
 mod routes;
 mod services;
 
+use std::net::SocketAddr;
+
 use axum::{
-    Json, Router,
+    Json, Router, ServiceExt,
     body::to_bytes,
     http::{StatusCode, header},
     middleware,
@@ -92,5 +95,10 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
     println!("http://localhost:3001");
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }
