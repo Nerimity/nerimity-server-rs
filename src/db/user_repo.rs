@@ -1,6 +1,25 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, types::Json};
 
+#[derive(Serialize, Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicUser {
+    pub id: String,
+    pub username: String,
+    pub tag: String,
+    pub avatar: Option<String>,
+}
+impl From<&User> for PublicUser {
+    fn from(u: &User) -> Self {
+        Self {
+            id: u.id.clone(),
+            username: u.username.clone(),
+            tag: u.tag.clone(),
+            avatar: u.avatar.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {

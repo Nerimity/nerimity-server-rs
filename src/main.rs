@@ -77,6 +77,15 @@ async fn main() {
         .await
         .unwrap();
 
+    sqlx::raw_sql(
+        r#"
+    DROP VIEW IF EXISTS public_users;
+    "#,
+    )
+    .execute(&db)
+    .await
+    .unwrap();
+
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
 
     let state = AppState {

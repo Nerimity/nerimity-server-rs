@@ -9,6 +9,7 @@ use crate::{
         AccountCache, ApplicationCache, UserCache, get_user_cache_by_session_id, store_user_cache,
     },
     db::{
+        suspension_repo,
         user_device_repo::{self},
         user_repo,
     },
@@ -61,6 +62,18 @@ pub async fn auth(opts: AuthOptions<'_>) -> Result<UserCache, ApiError> {
     let user_device = user_device_repo::find_by_session_id(&opts.state.db, session_id.to_string())
         .await?
         .ok_or_else(|| invalid_token_err())?;
+
+    // check suspended
+    let sus = suspension_repo::find_by_user_id(&opts.state.db, &user_device.user_id)
+        .await
+        .unwrap();
+
+    match sus {
+        Some(res) => {
+            println!("{:?}", res);
+        }
+        None => {}
+    }
 
     let user = user_repo::find_for_cache_by_id(&opts.state.db, &user_device.user_id)
         .await?
